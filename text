@@ -1,0 +1,137 @@
+Para generar el secret JWT
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+-- Dropear tablas si existen en el orden correcto
+DROP TABLE IF EXISTS movimientos CASCADE;
+DROP TABLE IF EXISTS devoluciones CASCADE;
+DROP TABLE IF EXISTS existencias_minimas CASCADE;
+DROP TABLE IF EXISTS solicitudes CASCADE;
+DROP TABLE IF EXISTS productos CASCADE;
+DROP TABLE IF EXISTS bodegas CASCADE;
+DROP TABLE IF EXISTS tipos_movimiento CASCADE;
+DROP TABLE IF EXISTS estados CASCADE;
+DROP TABLE IF EXISTS tipos_solicitud CASCADE;
+DROP TABLE IF EXISTS usuarios CASCADE;
+DROP TABLE IF EXISTS roles CASCADE;
+
+-- Crear roles table primero
+CREATE TABLE roles (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL UNIQUE
+);
+
+-- Insertar roles posibles
+INSERT INTO roles (nombre) VALUES ('admin'), ('farmaceutico'), ('bodeguero'), ('asistencial');
+
+-- Crear usuarios table
+CREATE TABLE usuarios (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    correo VARCHAR(100) UNIQUE NOT NULL,
+    contrasena VARCHAR(255) NOT NULL,
+    rol_id INTEGER REFERENCES roles(id),  -- Relación con la tabla de roles
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Crear estados table
+CREATE TABLE estados (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL UNIQUE
+);
+
+-- Insertar estados posibles para solicitudes y devoluciones
+INSERT INTO estados (nombre) VALUES ('pendiente'), ('despachado'), ('cancelado'), ('confirmado');
+
+-- Crear tipos_solicitud table
+CREATE TABLE tipos_solicitud (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL UNIQUE
+);
+
+-- Insertar tipos de solicitud
+INSERT INTO tipos_solicitud (nombre) VALUES ('area'), ('paciente');
+
+-- Crear bodegas table
+CREATE TABLE bodegas (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    direccion VARCHAR(255),
+    responsable_id INTEGER REFERENCES usuarios(id),
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Crear productos table
+CREATE TABLE productos (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    descripcion TEXT,
+    cantidad_disponible INTEGER NOT NULL,
+    precio DECIMAL(10, 2) NOT NULL,
+    fecha_vencimiento DATE NOT NULL,
+    lote VARCHAR(50),
+    bodega_id INTEGER REFERENCES bodegas(id),  -- Relación con la tabla de bodegas
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Crear solicitudes table
+CREATE TABLE solicitudes (
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER REFERENCES usuarios(id),
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    estado_id INTEGER REFERENCES estados(id),  -- Relación con la tabla de estados
+    tipo_solicitud_id INTEGER REFERENCES tipos_solicitud(id),  -- Relación con la tabla de tipos de solicitud
+    motivo TEXT
+);
+
+-- Crear existencias_minimas table
+CREATE TABLE existencias_minimas (
+    producto_id INTEGER REFERENCES productos(id),
+    cantidad_minima INTEGER NOT NULL CHECK (cantidad_minima > 0),
+    PRIMARY KEY (producto_id)
+);
+
+-- Crear tipos_movimiento table
+CREATE TABLE tipos_movimiento (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL UNIQUE
+);
+
+-- Insertar tipos de movimiento
+INSERT INTO tipos_movimiento (nombre) VALUES ('entrada'), ('salida');
+
+-- Crear movimientos table
+CREATE TABLE movimientos (
+    id SERIAL PRIMARY KEY,
+    producto_id INTEGER REFERENCES productos(id),
+    solicitud_id INTEGER REFERENCES solicitudes(id),
+    tipo_movimiento_id INTEGER REFERENCES tipos_movimiento(id),  -- Relación con la tabla de tipos de movimiento
+    cantidad INTEGER NOT NULL CHECK (cantidad > 0),
+    fecha_movimiento TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    usuario_id INTEGER REFERENCES usuarios(id)
+);
+
+-- Crear devoluciones table
+CREATE TABLE devoluciones (
+    id SERIAL PRIMARY KEY,
+    producto_id INTEGER REFERENCES productos(id),
+    usuario_id INTEGER REFERENCES usuarios(id),
+    cantidad INTEGER NOT NULL CHECK (cantidad > 0),
+    fecha_devolucion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    estado_id INTEGER REFERENCES estados(id),  -- Relación con la tabla de estados
+    motivo TEXT
+);
+
+
+-------FALTA ESTO----------------
+Solicitudes de productos
+El personal asistencial podrá generar solicitudes de insumos o medicamentos desde las áreas.
+
+GET /api/solicitudes: Lista todas las solicitudes de insumos y medicamentos realizadas.
+GET /api/solicitudes/
+: Obtiene los detalles de una solicitud específica (número de solicitud, cama del paciente, usuario que solicita, medicamentos solicitados, etc.).
+POST /api/solicitudes: Crea una nueva solicitud de insumos o medicamentos. El personal asistencial usará este endpoint para realizar solicitudes desde las áreas clínicas.
+PUT /api/solicitudes/
+: Actualiza el estado de una solicitud (ej. "despachado", "cancelado").
+DELETE /api/solicitudes/
+: Cancela una solicitud pendiente. Se debe incluir el motivo de la cancelación.
+------------FALTA ESTO-----------
