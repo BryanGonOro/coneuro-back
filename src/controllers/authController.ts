@@ -107,7 +107,7 @@ export const login = async (req: Request, res: Response) => {
         const validPassword = await bcrypt.compare(contrasena, user.contrasena);
         if (!validPassword) return res.status(400).json({ message: 'Credenciales invalidas' });
 
-        const token = jwt.sign({ id: user.id, rol: user.rol }, process.env.JWT_SECRET!, {
+        const token = jwt.sign({ id: user.id, rol: user.rol_id }, process.env.JWT_SECRET!, {
             expiresIn: process.env.JWT_EXPIRES_IN,
         });
 
