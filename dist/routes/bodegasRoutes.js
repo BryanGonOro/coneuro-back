@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const authMiddleware_1 = require("../middlewares/authMiddleware");
+const roleMiddleware_1 = require("../middlewares/roleMiddleware");
+const bodegasController_1 = require("../controllers/bodegasController");
+const router = (0, express_1.Router)();
+router.get('/', authMiddleware_1.verifyToken, (0, roleMiddleware_1.checkRoles)([2]), bodegasController_1.getBodegas);
+router.get('/:id', authMiddleware_1.verifyToken, (0, roleMiddleware_1.checkRoles)(), bodegasController_1.getBodegaById);
+router.post('/', authMiddleware_1.verifyToken, (0, roleMiddleware_1.checkRoles)(), bodegasController_1.createBodegas);
+router.put('/:id', authMiddleware_1.verifyToken, (0, roleMiddleware_1.checkRoles)(), bodegasController_1.updateBodegas);
+router.delete('/:id', authMiddleware_1.verifyToken, (0, roleMiddleware_1.checkRoles)(), bodegasController_1.deleteBodegas);
+exports.default = router;
