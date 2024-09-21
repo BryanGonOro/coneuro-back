@@ -7,6 +7,7 @@ export interface ReqUser extends Request {
 
 export const verifyToken = (req: ReqUser, res: Response, next: NextFunction) => {
   const token = req.cookies.token;
+  console.log('Token recibido:', token);
   if (!token) return res.status(403).json({ message: 'Token requerido' });
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!);

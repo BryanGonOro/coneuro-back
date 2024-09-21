@@ -134,4 +134,7 @@ PUT /api/solicitudes/
 : Actualiza el estado de una solicitud (ej. "despachado", "cancelado").
 DELETE /api/solicitudes/
 : Cancela una solicitud pendiente. Se debe incluir el motivo de la cancelación.
+
+coneuro@coneurosas.com
+Coneuro2024
 ------------FALTA ESTO-----------
