@@ -99,7 +99,7 @@ export const login = async (req: Request, res: Response) => {
     const { correo, contrasena } = req.body;
 
     try {
-        const result = await pool.query('SELECT * FROM usuarios WHERE correo = $1', [correo]);
+        const result = await pool.query('SELECT * FROM users WHERE email = $1', [correo]);
         const user = result.rows[0];
 
         if (!user) return res.status(400).json({ message: 'Credenciales invalidas' });
