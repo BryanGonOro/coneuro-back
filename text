@@ -123,3 +123,106 @@ CREATE TABLE Bodegas (
 
 
 https://excalidraw.com/#json=g_W1yKce06w8jORZL6PBS,6AcIlqlxxcChMpQNJfL3og
+
+----------------------------------------------
+modelo EAV (Entidad-Valor-Atributo) FARMACIA
+1. Tabla Principal de Productos (products)
+La tabla products contiene solo los atributos generales, aplicables a todos los productos, y utiliza un id único para referenciar los atributos específicos almacenados en otras tablas.
+CREATE TABLE products (
+    id SERIAL PRIMARY KEY,
+    commercial_name VARCHAR(255) NOT NULL,
+    generic_name VARCHAR(255),
+    description TEXT,
+    brand VARCHAR(100),
+    fk_id_presentation INTEGER REFERENCES presentation(id) ON DELETE SET NULL,
+    barcode VARCHAR(50) UNIQUE,
+    fk_id_category INTEGER REFERENCES categories(id) ON DELETE RESTRICT, -- Tipo de producto (Medicamento o Insumo)
+    fk_id_supplier INTEGER REFERENCES suppliers(id) ON DELETE RESTRICT,
+    iva NUMERIC(3, 2) DEFAULT 0,
+    status SMALLINT DEFAULT 1, -- Estado (1: Activo, 0: Inactivo)
+    created_by INTEGER REFERENCES users(id) ON DELETE RESTRICT NOT NULL,
+    updated_by INTEGER REFERENCES users(id) ON DELETE RESTRICT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+2. Tabla de Atributos (attributes)
+Esta tabla define los atributos posibles que pueden aplicarse a distintos tipos de productos. Aquí registras cada atributo una vez, permitiendo que sea reutilizable y administrado de manera centralizada.
+CREATE TABLE attributes (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL, -- Nombre del atributo (ej. "dosage", "temperature", "caliber")
+    data_type VARCHAR(50) NOT NULL, -- Tipo de dato (ej. "VARCHAR", "INTEGER", "DATE")
+    description TEXT -- Descripción opcional del atributo
+);
+
+Algunos ejemplos de datos que se podrían insertar en attributes:
+INSERT INTO attributes (name, data_type, description) VALUES 
+('dosage', 'VARCHAR', 'Concentración del medicamento'),
+('temperature', 'VARCHAR', 'Temperatura de almacenamiento'),
+('sanitary_registration', 'VARCHAR', 'Registro sanitario del producto'),
+('caliber', 'VARCHAR', 'Calibre del insumo'),
+('batch', 'VARCHAR', 'Número de lote');
+
+3. Tabla de Valores de Atributo (product_attributes)
+Esta tabla es el núcleo del modelo EAV. Asocia cada product_id con un attribute_id y un value. Almacena los valores específicos de cada producto, permitiendo flexibilidad y escalabilidad sin modificar la estructura.
+CREATE TABLE product_attributes (
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+    attribute_id INTEGER REFERENCES attributes(id) ON DELETE CASCADE,
+    value TEXT, -- Valor del atributo (se guarda como texto para soportar cualquier tipo de dato)
+    UNIQUE (product_id, attribute_id) -- Evita duplicados para un producto y un atributo específicos
+);
+4. Ejemplo de Inserción de Datos
+Supongamos que queremos registrar un medicamento y un insumo con atributos específicos.
+
+Insertar un Producto Base (Medicamento):
+INSERT INTO products (commercial_name, generic_name, brand, barcode, fk_id_category, fk_id_supplier, created_by, updated_by)
+VALUES ('Paracetamol', 'Acetaminofén', 'Laboratorio XYZ', '1234567890', 1, 2, 1, 1);
+Agregar Atributos Específicos del Medicamento:
+-- Dosage
+INSERT INTO product_attributes (product_id, attribute_id, value)
+VALUES (1, (SELECT id FROM attributes WHERE name = 'dosage'), '500 mg');
+
+-- Temperature
+INSERT INTO product_attributes (product_id, attribute_id, value)
+VALUES (1, (SELECT id FROM attributes WHERE name = 'temperature'), '25°C');
+
+-- Sanitary Registration
+INSERT INTO product_attributes (product_id, attribute_id, value)
+VALUES (1, (SELECT id FROM attributes WHERE name = 'sanitary_registration'), 'ABC-123');
+
+Insertar un Producto Base (Insumo Médico):
+INSERT INTO products (commercial_name, brand, barcode, fk_id_category, fk_id_supplier, created_by, updated_by)
+VALUES ('Guantes Quirúrgicos', 'Laboratorio ABC', '0987654321', 2, 3, 1, 1);
+
+INSERT INTO products (commercial_name, brand, barcode, fk_id_category, fk_id_supplier, created_by, updated_by)
+VALUES ('Guantes Quirúrgicos', 'Laboratorio ABC', '0987654321', 2, 3, 1, 1);
+Agregar Atributos Específicos del Insumo Médico:
+-- Caliber
+INSERT INTO product_attributes (product_id, attribute_id, value)
+VALUES (2, (SELECT id FROM attributes WHERE name = 'caliber'), '7.5');
+
+-- Batch
+INSERT INTO product_attributes (product_id, attribute_id, value)
+VALUES (2, (SELECT id FROM attributes WHERE name = 'batch'), 'Lote-001');
+
+5. Consultas de Ejemplo
+Obtener todos los productos con sus atributos:
+Para obtener un producto junto con sus atributos, necesitas unir products, product_attributes y attributes.
+SELECT p.id AS product_id, p.commercial_name, a.name AS attribute_name, pa.value
+FROM products p
+JOIN product_attributes pa ON p.id = pa.product_id
+JOIN attributes a ON pa.attribute_id = a.id;
+
+Obtener atributos específicos de un producto en particular (ej. Paracetamol):
+SELECT a.name AS attribute_name, pa.value
+FROM products p
+JOIN product_attributes pa ON p.id = pa.product_id
+JOIN attributes a ON pa.attribute_id = a.id
+WHERE p.commercial_name = 'Paracetamol';
+6. Ventajas de este Enfoque EAV
+Escalabilidad y flexibilidad: Es fácil agregar nuevos atributos sin alterar la estructura de la tabla products, solo se necesita añadir una nueva entrada en attributes.
+Minimiza campos vacíos: Solo los productos que necesitan un atributo tendrán valores en product_attributes.
+Manejo centralizado de atributos: Los atributos se gestionan desde una única tabla, facilitando la administración y modificación.
+Soporte para varios tipos de productos: La misma estructura puede manejar medicamentos, insumos médicos y cualquier otro tipo de producto.
+Este modelo es ideal si los atributos de los productos son variados y pueden cambiar con el tiempo. Sin embargo, ten en cuenta que el modelo EAV puede ser menos eficiente en consultas complejas, ya que requiere múltiples uniones para recuperar los datos.

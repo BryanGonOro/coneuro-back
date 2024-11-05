@@ -14,7 +14,7 @@ app.use(cookieParser());
 
 // Configure CORS
 app.use(cors({
-    origin: ['http://localhost:3039', 'https://bryangonoro.github.io/coneuro/', 'https://bryangonoro.github.io'], // Allow the frontend origin
+    origin: ['http://localhost:3039', 'https://bryangonoro.github.io/coneuro/', 'https://bryangonoro.github.io', 'http://localhost'], // Allow the frontend origin
     credentials: true, // Allow credentials (cookies, authorization headers, etc.)
 }));
 

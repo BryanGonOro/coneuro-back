@@ -18,6 +18,7 @@ export function checkRoles(allowedRoleIds?: number[]) {
 
     // Si no se especificaron roles permitidos, solo permitir al admin (rol === 1)
     if (!allowedRoleIds || allowedRoleIds.length === 0) {
+      // console.log(req.user.rol )
       if (req.user.rol === 1) {
         return next();  // Si es admin, permitir acceso
       } else {
