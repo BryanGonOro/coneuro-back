@@ -71,7 +71,8 @@ router.delete('/:id', verifyToken, checkRoles(), deleteUsers);
  *       400:
  *         description: Error en el inicio de sesión
  */
-router.post('/login', limiter, login);
+router.post('/login', login);
+// router.post('/login', limiter, login);
 
 
 router.post('/logout', logout);
